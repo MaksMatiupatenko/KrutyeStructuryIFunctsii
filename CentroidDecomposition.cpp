@@ -2,6 +2,7 @@ class CentroidDecomposition {
 private:
     vector <vector <int> > g;
     vector<int> level, parent, sizes;
+    
     function<void(int, int)> calcSizes = [&](int curr, int par) {
         sizes[curr] = 1;
         for (auto t: g[curr]) {
@@ -11,6 +12,7 @@ private:
             }
         }
     };
+    
     function<void(int, int, int, int)> centroid = [&](int curr, int par, int prevCentroid, int sz0) {
         int mx = 0;
         for (auto to: g[curr]) {
