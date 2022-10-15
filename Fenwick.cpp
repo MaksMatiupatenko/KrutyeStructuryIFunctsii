@@ -1,3 +1,4 @@
+//TUT POLUINTERVALY!!!
 class Fenwick {
 private:
     std::vector <int> data;
