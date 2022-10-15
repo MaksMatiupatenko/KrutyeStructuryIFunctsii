@@ -25,6 +25,7 @@ namespace _Hash_ {
 			}
 			return ans;
 		}
+		
 		Hash operator-(const Hash& other) const {
 			Hash ans;
 			for (int i = 0; i < k; i++) {
@@ -32,6 +33,7 @@ namespace _Hash_ {
 			}
 			return ans;
 		}
+		
 		Hash operator*(const Hash& other) const {
 			Hash ans;
 			for (int i = 0; i < k; i++) {
@@ -47,12 +49,14 @@ namespace _Hash_ {
 			}
 			return true;
 		}
+		
 		bool operator!=(const Hash& other) const {
 			for (int i = 0; i < k; i++) {
 				if (x[i] != other.x[i]) return true;
 			}
 			return false;
 		}
+		
 		bool operator<(const Hash& other) const {
 			for (int i = 0; i < k; i++) {
 				if (x[i] < other.x[i]) return true;
@@ -83,7 +87,6 @@ namespace _Hash_ {
 				data[i] = data[i - 1] * p0 + *begin;
 				++begin;
 			}
-
 			if (p.size() < data.size()) {
 				int old = max((int)p.size(), 1);
 				p.resize(data.size(), 1);
