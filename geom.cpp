@@ -91,6 +91,7 @@ namespace geom {
     private:
         vector <Vector2 <type>> data;
         bool isConvex = false;
+        int mnx = 0, mxx = 0;
 
     public:
         Vector2 <type>& operator[](int ind) {
@@ -104,6 +105,12 @@ namespace geom {
         void push(const Vector2 <type>& vertex) {
             data.push_back(vertex);
             isConvex = false;
+            if (data.back().x < data[mnx].x) {
+                mnx = data.size() - 1;
+            }
+            if (data.back().x > data[mxx].x) {
+                mxx = data.size() - 1;
+            }
         }
 
         Vector2 <type> segment(int ind) {
@@ -132,6 +139,16 @@ namespace geom {
 
             data = st;
             isConvex = true;
+
+            mnx = 0, mxx = 0;
+            for (int i = 0; i < data.size(); ++i) {
+                if (data[i].x < data[mnx].x) {
+                    mnx = i;
+                }
+                if (data[i].x > data[mxx].x) {
+                    mxx = i;
+                }
+            }
         }
 
         type area2() {
@@ -199,46 +216,63 @@ namespace geom {
         pair <int, int> parallelTangents(const Vector2 <type>& vec) {
             auto& p = *this;
 
-            Vector2 <type> vec1 = { vec.y, -vec.x };
+            Vector2 <type> norm = { vec.y, -vec.x };
+            if (norm.y < 0) norm = -norm;
+
+            int l1 = mnx - 1, r1 = mxx;
+            while (l1 + 1 != r1) {
+                int m = (l1 + r1) / 2;
+                if (dot(p.segment(m), norm) <= 0) l1 = m;
+                else r1 = m;
+            }
+
+            int l2 = mxx - 1, r2 = mnx + p.size();
+            while (l2 + 1 != r2) {
+                int m = (l2 + r2) / 2;
+                if (dot(p.segment(m), norm) >= 0) l2 = m;
+                else r2 = m;
+            }
+
+            return { r1, r2 };
+        }
+
+        pair <int, int> tangents(const Vector2 <type>& point) {
+            auto& p = *this;
 
             int lg = 0;
-            while ((1 << lg) < size()) ++lg;
+            while ((1 << lg) < p.size()) ++lg;
 
-            int i1 = 0;
+            int l1 = 0;
             for (int k = lg; k >= 0; --k) {
-                int ni = i1;
-                Vector2 <type> v1 = p[i1 - (1 << k)];
-                Vector2 <type> v2 = p[i1];
-                Vector2 <type> v3 = p[i1 + (1 << k)];
+                ivec2 v1 = p[l1 - (1 << k)] - point;
+                ivec2 v2 = p[l1] - point;
+                ivec2 v3 = p[l1 + (1 << k)] - point;
 
-                if (dot(v1, vec1) < dot(v2, vec1)) {
-                    v1 = v2;
-                    ni = i1 - (1 << k);
+                if (cross(v1, v2) < 0 && cross(v1, v3) < 0) {
+                    l1 = l1 - (1 << k);
                 }
-                if (dot(v1, vec1) < dot(v3, vec1)) {
-                    ni = i1 + (1 << k);
+                else if (cross(v3, v2) < 0 && cross(v3, v1) < 0) {
+                    l1 = l1 + (1 << k);
                 }
-                i1 = ni;
+                l1 %= p.size();
             }
 
-            int i2 = 0;
+            int l2 = 0;
             for (int k = lg; k >= 0; --k) {
-                int ni = i2;
-                Vector2 <type> v1 = p[i2 - (1 << k)];
-                Vector2 <type> v2 = p[i2];
-                Vector2 <type> v3 = p[i2 + (1 << k)];
+                ivec2 v1 = p[l2 - (1 << k)] - point;
+                ivec2 v2 = p[l2] - point;
+                ivec2 v3 = p[l2 + (1 << k)] - point;
 
-                if (dot(v1, vec1) > dot(v2, vec1)) {
-                    v1 = v2;
-                    ni = i2 - (1 << k);
+                if (cross(v1, v2) > 0 && cross(v1, v3) > 0) {
+                    l2 = l2 - (1 << k);
                 }
-                if (dot(v1, vec1) > dot(v3, vec1)) {
-                    ni = i2 + (1 << k);
+                else if (cross(v3, v2) > 0 && cross(v3, v1) > 0) {
+                    l2 = l2 + (1 << k);
                 }
-                i2 = ni;
+                l2 %= p.size();
             }
 
-            return { i1, i2 };
+            return { l1, l2 };
         }
     };
 }
