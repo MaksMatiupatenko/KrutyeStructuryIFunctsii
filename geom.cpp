@@ -70,6 +70,25 @@ namespace geom {
     using ivec2 = Vector2 <int64>;
 
     template <class type>
+    struct Line {
+        type A = 1, B = 1, C = 0;
+
+        Line(type A, type B, type C) : A(A), B(B), C(C) {}
+
+        Line(const Vector2 <type>& p1, const Vector2 <type>& p2) {
+            auto [x1, y1] = p1;
+            auto [x2, y2] = p2;
+            A = (y1 - y2);
+            B = (x2 - x1);
+            C = (x1 * y2 - x2 * y1);
+        }
+
+        type operator()(const Vector2 <type>& a) const {
+            return A * a.x + B * a.y + C;
+        }
+    };
+
+    template <class type>
     int sign(type n) {
         if (n == 0) return 0;
         if (n > 0) return 1;
