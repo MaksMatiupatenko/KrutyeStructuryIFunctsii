@@ -15,6 +15,6 @@ for (int len = 2; len <= n; ++len) {
                 }
             }
 
-            dp[i][i + len] = { opt, optans + pr[i + len] - pr[i] };
+            dp[i][i + len] = {opt, optans + pr[i + len] - pr[i]};
         }
     }
