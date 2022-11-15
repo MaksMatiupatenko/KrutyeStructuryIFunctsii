@@ -1,5 +1,19 @@
 namespace geom {
+#ifdef GEOM_DEBUG
+#define error exit(1);
+#else
+#define error
+#endif
+
     const double PI = acos(-1);
+    const double eps = 1e-8;
+
+    template <class type>
+    int sign(type n) {
+        if (n == 0) return 0;
+        if (n > 0) return 1;
+        return -1;
+    }
 
     template <class type>
     class Vector2 {
@@ -65,42 +79,124 @@ namespace geom {
         friend double atan(const Vector2 <type>& v1, const Vector2 <type>& v2) {
             return atan2(cross(v1, v2), dot(v1, v2));
         }
+
+        template <class T>
+        friend Vector2 <double> normalize(const Vector2 <T>& vec) {
+            return (Vector2 <double>)(vec) / length(vec);
+        }
+
+        template <class T>
+        operator Vector2 <T>() const {
+            return Vector2 <T>(x, y);
+        }
     };
     using vec2 = Vector2 <double>;
     using ivec2 = Vector2 <int64>;
 
     template <class type>
     struct Line {
-        type A = 1, B = 1, C = 0;
+        type a = 1, b = 1, c = 0;
 
-        Line(type A, type B, type C) : A(A), B(B), C(C) {}
+        Line(type a, type b, type c) : a(a), b(b), c(c) {}
 
         Line(const Vector2 <type>& p1, const Vector2 <type>& p2) {
             auto [x1, y1] = p1;
             auto [x2, y2] = p2;
-            A = (y1 - y2);
-            B = (x2 - x1);
-            C = (x1 * y2 - x2 * y1);
+            a = (y1 - y2);
+            b = (x2 - x1);
+            c = (x1 * y2 - x2 * y1);
         }
 
-        type operator()(const Vector2 <type>& a) const {
-            return A * a.x + B * a.y + C;
+        type operator()(const Vector2 <type>& vec) const {
+            return a * vec.x + b * vec.y + c;
         }
 
         Vector2 <type> getNorm() const {
-            return { A, B };
+            return { a, b };
         }
 
-        friend Vector2 <double> intersection(const Line& a, const Line& b) {
+        friend bool isParallel(const Line& a, const Line& b) {
+            return a.a * b.b - a.b * b.a == 0;
+        }
 
+        friend bool intersection(const Line& a, const Line& b, Vector2 <double>& ans) {
+            if (isParallel(a, b)) return false;
+            ans.x = (double)(a.b * b.c - a.c * b.b) / (a.a * b.b - a.b * b.a);
+            ans.y = (double)(a.c * b.a - a.a * b.c) / (a.a * b.b - a.b * b.a);
+            return true;
+        }
+        friend Vector2 <double> intersection(const Line& a, const Line& b) {
+#ifdef GEOM_DEBUG
+            if (isParallel(a, b)) {
+                cout << "ERRRRRRRRROOOOOOOOR\nLINE CRASHED IDI NAHUI\n";
+                error;
+            }
+#endif
+            return { 
+                (double)(a.b * b.c - a.c * b.b) / (a.a * b.b - a.b * b.a),
+                (double)(a.c * b.a - a.a * b.c) / (a.a * b.b - a.b * b.a) };
+        }
+
+        bool operator==(const Line& other) const {
+            return a * other.b - b * other.a == 0 &&
+                (int128)length2(getNorm()) * other.c * other.c == (int128)length2(other.getNorm()) * c * c;
+        }
+
+        Line perpendicular(const Vector2 <type>& v) const {
+            return Line(b, -a, a * v.y - b * v.x);
+        }
+
+        template <class T>
+        operator Line <T>() const {
+            return Line <T>(a, b, c);
+        }
+    };
+
+    struct Circle {
+        Vector2 <double> p = { 0, 0 };
+        double r = 0;
+
+        Circle(const Vector2 <double>& p, double r) :p(p), r(r) {}
+        Circle() {};
+        Circle(const Vector2 <double>& a, const Vector2 <double>& b, const Vector2 <double>& c) {
+            Line l1 = Line(a, b).perpendicular((a + b) / 2);
+            Line l2 = Line(a, c).perpendicular((a + c) / 2);
+
+            bool flag = intersection(l1, l2, p);
+#ifdef GEOM_DEBUG
+            if (!flag) {
+                cerr << "ERRRRRRRRROOOOOOOOR\nCIRCLE CRASHED IDI NAHUI\n";
+                error;
+            }
+#endif
+            r = length(p - a);
         }
     };
 
     template <class type>
-    int sign(type n) {
-        if (n == 0) return 0;
-        if (n > 0) return 1;
-        return -1;
+    double dist(const Line <type>& line, const Vector2 <type>& vec) {
+        return abs(line.a * vec.x + line.b * vec.y + line.c) / length(vec);
+    }
+
+    template <class type>
+    double signDist(const Line <type>& line, const Vector2 <type>& vec) {
+        return (line.a * vec.x + line.b * vec.y + line.c) / length(vec);
+    }
+
+    std::vector <vec2> intersection(const Line <double>& line, const Circle& circle) {
+        double d = signDist(line, circle.p);
+        vec2 p = circle.p + normalize(line.getNorm()) * d;
+
+        if (abs(abs(d) - circle.r) < eps) {
+            return { p };
+        }
+        if (abs(d) > circle.r) {
+            return {};
+        }
+        
+        double d1 = sqrt(circle.r * circle.r - d * d);
+        vec2 norm = normalize(line.getNorm());
+        return { p - vec2(-norm.y, norm.x) * d1, p + vec2(-norm.y, norm.x) * d1 };
     }
 
     template <class vec_t>
