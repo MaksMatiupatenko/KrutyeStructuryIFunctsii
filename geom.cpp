@@ -86,6 +86,14 @@ namespace geom {
         type operator()(const Vector2 <type>& a) const {
             return A * a.x + B * a.y + C;
         }
+
+        Vector2 <type> getNorm() const {
+            return { A, B };
+        }
+
+        friend Vector2 <double> intersection(const Line& a, const Line& b) {
+
+        }
     };
 
     template <class type>
@@ -95,25 +103,25 @@ namespace geom {
         return -1;
     }
 
-    template <class type>
-    bool pointInSegment(const Vector2 <type>& point, const Vector2 <type>& sg1, const Vector2 <type>& sg2) {
+    template <class vec_t>
+    bool pointInSegment(const vec_t& point, const vec_t& sg1, const vec_t& sg2) {
         return dot(sg1 - point, sg2 - point) <= 0 && cross(sg1 - point, sg2 - point) == 0;
     }
 
-    template <class type>
-    bool pointInAngle(const Vector2 <type>& point, const Vector2 <type>& sg1, const Vector2 <type>& sg2) {
+    template <class vec_t>
+    bool pointInAngle(const vec_t& point, const vec_t& sg1, const vec_t& sg2) {
         return (sign(cross(sg1, point)) * sign(cross(sg2, point)) < 0) && point.x > 0;
     }
 
-    template <class type>
+    template <class vec_t>
     class Polygon {
     private:
-        vector <Vector2 <type>> data;
+        vector <vec_t> data;
         bool isConvex = false;
         int mnx = 0, mxx = 0;
 
     public:
-        Vector2 <type>& operator[](int ind) {
+        vec_t& operator[](int ind) {
             return data[(ind % (int)data.size() + (int)data.size()) % (int)data.size()];
         }
 
@@ -121,7 +129,7 @@ namespace geom {
             return data.size();
         }
 
-        void push(const Vector2 <type>& vertex) {
+        void push(const vec_t& vertex) {
             data.push_back(vertex);
             isConvex = false;
             if (data.back().x < data[mnx].x) {
@@ -132,23 +140,23 @@ namespace geom {
             }
         }
 
-        Vector2 <type> segment(int ind) {
+        vec_t segment(int ind) {
             return (*this)[ind + 1] - (*this)[ind];
         }
 
         void createConvexHull() {
-            sort(all(data), [&](const Vector2 <type>& v1, const Vector2 <type>& v2) {
+            sort(all(data), [&](const vec_t& v1, const vec_t& v2) {
                 if (v1.x == v2.x) return v1.y < v2.y;
                 return v1.x < v2.x;
                 });
             data.resize(unique(all(data)) - data.begin());
-            sort(data.begin() + 1, data.end(), [&](const Vector2 <type>& v1, const Vector2 <type>& v2) {
-                type cr = cross(v1 - data[0], v2 - data[0]);
+            sort(data.begin() + 1, data.end(), [&](const vec_t& v1, const vec_t& v2) {
+                typename vec_t::type cr = cross(v1 - data[0], v2 - data[0]);
                 if (cr == 0) return length2(v1 - data[0]) < length2(v2 - data[0]);
                 return cr > 0;
                 });
 
-            vector <Vector2 <type>> st;
+            vector <vec_t> st;
             for (int i = 0; i < size(); ++i) {
                 while (st.size() > 1 && cross(st.back() - st[st.size() - 2], data[i] - st.back()) <= 0) {
                     st.pop_back();
@@ -170,8 +178,8 @@ namespace geom {
             }
         }
 
-        type area2() {
-            type ans = 0;
+        vec_t::type area2() {
+            typename vec_t::type ans = 0;
             for (int i = 0; i < size(); ++i) {
                 ans += cross(data[i], data[(i + 1) % data.size()]);
             }
@@ -189,7 +197,7 @@ namespace geom {
         // -1 if outside
         // 0 if border
         // 1 if inside
-        int contains(Vector2 <type> point) {
+        int contains(vec_t point) {
             auto& p = *this;
 
             if (!isConvex) {
@@ -232,10 +240,10 @@ namespace geom {
             }
         }
 
-        pair <int, int> parallelTangents(const Vector2 <type>& vec) {
+        pair <int, int> parallelTangents(const vec_t& vec) {
             auto& p = *this;
 
-            Vector2 <type> norm = { vec.y, -vec.x };
+            vec_t norm = { vec.y, -vec.x };
             if (norm.y < 0) norm = -norm;
 
             int l1 = mnx - 1, r1 = mxx;
@@ -255,7 +263,7 @@ namespace geom {
             return { r1, r2 };
         }
 
-        pair <int, int> tangents(const Vector2 <type>& point) {
+        pair <int, int> tangents(const vec_t& point) {
             auto& p = *this;
 
             int lg = 0;
@@ -263,9 +271,9 @@ namespace geom {
 
             int l1 = 0;
             for (int k = lg; k >= 0; --k) {
-                ivec2 v1 = p[l1 - (1 << k)] - point;
-                ivec2 v2 = p[l1] - point;
-                ivec2 v3 = p[l1 + (1 << k)] - point;
+                vec_t v1 = p[l1 - (1 << k)] - point;
+                vec_t v2 = p[l1] - point;
+                vec_t v3 = p[l1 + (1 << k)] - point;
 
                 if (cross(v1, v2) < 0 && cross(v1, v3) < 0) {
                     l1 = l1 - (1 << k);
@@ -278,9 +286,9 @@ namespace geom {
 
             int l2 = 0;
             for (int k = lg; k >= 0; --k) {
-                ivec2 v1 = p[l2 - (1 << k)] - point;
-                ivec2 v2 = p[l2] - point;
-                ivec2 v3 = p[l2 + (1 << k)] - point;
+                vec_t v1 = p[l2 - (1 << k)] - point;
+                vec_t v2 = p[l2] - point;
+                vec_t v3 = p[l2 + (1 << k)] - point;
 
                 if (cross(v1, v2) > 0 && cross(v1, v3) > 0) {
                     l2 = l2 - (1 << k);
@@ -294,4 +302,21 @@ namespace geom {
             return { l1, l2 };
         }
     };
+
+    // not strict intersection
+    template <class vec_t>
+    bool isIntersect(const vec_t& a1, const vec_t& b1, const vec_t& a2, const vec_t& b2) {
+        if (
+            cross(b1 - a1, a2 - b1) == 0 && cross(b1 - a1, b2 - b1) == 0 &&
+            cross(b2 - a2, a1 - b2) == 0 && cross(b2 - a2, b1 - b2) == 0) {
+
+            return 
+                dot(a1 - a2, b1 - a2) <= 0 || dot(a1 - b2, b1 - b2) <= 0 ||
+                dot(a2 - a1, b2 - a1) <= 0 || dot(a2 - b1, b2 - b1) <= 0;
+        }
+
+        return
+            sign(cross(a1 - a2, b2 - a2)) * sign(cross(b1 - a2, b2 - a2)) <= 0 &&
+            sign(cross(a2 - a1, b1 - a1)) * sign(cross(b2 - a1, b1 - a1)) <= 0;
+    }
 }
